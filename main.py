@@ -15,90 +15,46 @@ img_rows = 32
 img_cols = 32
 channels = 3
 img_shape = (img_rows, img_cols, channels)
-
 z_dim = 100
-
 plt.switch_backend('agg')
 
 def generator(img_shape, z_dim):
-
     model = Sequential()
-
-    # Reshape input into 7x7x256 tensor via a fully connected layer
     model.add(Dense(256 * 8 * 8, input_dim=z_dim))
     model.add(Reshape((8, 8, 256)))
 
-    # Transposed convolution layer, from 7x7x256 into 14x14x128 tensor
     model.add(Conv2DTranspose(
                 128, kernel_size=3, strides=2, padding='same'))
-
-    # Batch normalization
     model.add(BatchNormalization())
-
-    # Leaky ReLU
     model.add(LeakyReLU(alpha=0.01))
-    
-    # Transposed convolution layer, from 14x14x128 to 14x14x64 tensor
     model.add(Conv2DTranspose(
                 64, kernel_size=3, strides=1, padding='same'))
-
-    # Batch normalization
     model.add(BatchNormalization())
-
-    # Leaky ReLU
     model.add(LeakyReLU(alpha=0.01))
-    
-    # Transposed convolution layer, from 14x14x64 to 28x28x1 tensor
     model.add(Conv2DTranspose(
                 3, kernel_size=3, strides=2, padding='same'))
-
-    # Tanh activation
     model.add(Activation('tanh'))
-
     z = Input(shape=(z_dim,))
     img = model(z)
-
     return Model(z, img)
 
-
 def discriminator(img_shape):
-
     model = Sequential()
-
-    # Convolutional layer, from 28x28x1 into 14x14x32 tensor
     model.add(Conv2D(32, kernel_size=3, strides=2, 
                              input_shape=img_shape, padding='same'))
-
-    # Leaky ReLU
     model.add(LeakyReLU(alpha=0.01))
-
-    # Convolutional layer, from 14x14x32 into 7x7x64 tensor
     model.add(Conv2D(64, kernel_size=3, strides=2, 
                              input_shape=img_shape, padding='same'))
-    
-    # Batch normalization
     model.add(BatchNormalization())
-    
-    # Leaky ReLU
     model.add(LeakyReLU(alpha=0.01))
-    
-    # Convolutional layer, from 7x7x64 tensor into 3x3x128 tensor
     model.add(Conv2D(128, kernel_size=3, strides=2, 
                              input_shape=img_shape, padding='same'))
-    
-    # Batch normalization
     model.add(BatchNormalization())
-    
-    # Leaky ReLU
     model.add(LeakyReLU(alpha=0.01))
-
-    # Flatten the tensor and apply sigmoid activation function
     model.add(Flatten())
     model.add(Dense(1, activation='sigmoid'))
-
     img = Input(shape=img_shape)
     prediction = model(img)
-
     return Model(img, prediction)
 
 
@@ -136,82 +92,50 @@ def filter_by_category(xt, yt, i):
     for x, y in zip(xt, yt):
         if y == i:
             result.append(x)
-    return np.array(result)
+    return np.array(result) 
 
 
-def train(iterations, batch_size, sample_interval):
-    
-    # Load the dataset
+def train(epochs, batch_size, sample_interval):
     (X_train, Y_train), (_, _) = cifar10.load_data()
 
-    X_train = filter_by_category(X_train, Y_train, 1)
-                    
-    print(X_train.shape)
-    
-    # Rescale -1 to 1
+    X_train = filter_by_category(X_train, Y_train, 0)
+      
+    # Scale -1 to 1
     X_train = X_train / 127.5 - 1.
-    #X_train = np.expand_dims(X_train, axis=3)
 
+    ones = np.ones((batch_size, 1))
+    zeros = np.zeros((batch_size, 1))
 
-    #print(X_train.shape)
-
-    #input()
-
-    # Labels for real and fake examples
-    real = np.ones((batch_size, 1))
-    fake = np.zeros((batch_size, 1))
-
-    for iteration in range(iterations):
+    for epoch in range(epochs):
         
-        # -------------------------
-        #  Train the Discriminator
-        # -------------------------
+        ind = np.random.randint(0, X_train.shape[0], batch_size)
+        images = X_train[ind]
 
-        #print(X_train.shape)
-        
-        # Select a random batch of real images
-        idx = np.random.randint(0, X_train.shape[0], batch_size)
-
-        #print(idx)
-        imgs = X_train[idx]
-
-        #print(imgs.shape)
-        
-        # Generate a batch of fake images
+        # Generate images
         z = np.random.normal(0, 1, (batch_size, 100))
-        gen_imgs = generator.predict(z)
-
-        #print(z.shape)
-
-        #input()
+        images_gen = generator.predict(z)
         
         # Discriminator loss
-        d_loss_real = discriminator.train_on_batch(imgs, real)
-        d_loss_fake = discriminator.train_on_batch(gen_imgs, fake)
-        d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
+        d_loss = discriminator.train_on_batch(images, ones)
+        d_loss_gen = discriminator.train_on_batch(images_gen, zeros)
+        d_loss = 0.5 * np.add(d_loss, d_loss_gen)
 
-        # ---------------------
-        #  Train the Generator
-        # ---------------------
-
-        # Generate a batch of fake images
+        # Generate images -- What if we used the same ones as before?
         z = np.random.normal(0, 1, (batch_size, 100))
-        gen_imgs = generator.predict(z)
+        images_gen = generator.predict(z)
 
         # Generator loss
-        g_loss = combined.train_on_batch(z, real)
+        g_loss = combined.train_on_batch(z, ones)
 
-        print ("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" % (iteration, d_loss[0], 100*d_loss[1], g_loss))
+        print ("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss))
 
         losses.append((d_loss[0], g_loss))
         accuracies.append(100*d_loss[1])
         
-        if iteration % sample_interval == 0:
+        if epoch % sample_interval == 0:
+            sample_images(epoch)
 
-            sample_images(iteration)
-
-def sample_images(iteration, image_grid_rows=4, image_grid_columns=4):
-
+def sample_images(epoch, image_grid_rows=4, image_grid_columns=4):
     plt.figure(figsize=(10,10))
     
     # Sample random noise
@@ -224,7 +148,6 @@ def sample_images(iteration, image_grid_rows=4, image_grid_columns=4):
     # Rescale images to 0-1
     gen_imgs = 0.5 * gen_imgs + 0.5
  
-    # Set image grid
     for i in range(gen_imgs.shape[0]):
         plt.subplot(4, 4, i+1)
         image = gen_imgs[i, :, :, :]
@@ -240,14 +163,14 @@ def sample_images(iteration, image_grid_rows=4, image_grid_columns=4):
             
     if not os.path.exists("./images"):
         os.makedirs("./images")
-    filename = "./images/mnist_%d.png" % iteration
+    filename = "./images/sample_%d.png" % epoch
         
     plt.savefig(filename)
-
+    plt.close("all")
     
-iterations = 20000
+epochs = 20000
 batch_size = 32
 sample_interval = 1000
 
 # Train the GAN for the specified number of iterations
-train(iterations, batch_size, sample_interval)
+train(epochs, batch_size, sample_interval)
