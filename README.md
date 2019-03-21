@@ -1,8 +1,8 @@
-#Car
+# Car
 ![cars](https://raw.githubusercontent.com/baileytom/cifar10-gan/master/images/cars.png)
 
-#Airplane
+# Airplane
 ![planes](https://raw.githubusercontent.com/baileytom/cifar10-gan/master/images/planes.png)
 
-#Frog
+# Frog
 ![frogs](https://raw.githubusercontent.com/baileytom/cifar10-gan/master/images/frogs.png)
