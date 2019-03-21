@@ -1,4 +1,3 @@
-
 from keras.datasets import mnist, cifar10
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout
 from keras.layers import BatchNormalization, Activation, ZeroPadding2D
@@ -6,11 +5,12 @@ from keras.layers.advanced_activations import LeakyReLU
 from keras.layers.convolutional import Conv2D, Conv2DTranspose
 from keras.models import Sequential, Model
 from keras.optimizers import Adam
-
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 
+losses = []
+accuracies = []
 img_rows = 32
 img_cols = 32
 channels = 3
@@ -57,43 +57,12 @@ def discriminator(img_shape):
     prediction = model(img)
     return Model(img, prediction)
 
-
-
-
-# Build and compile the Discriminator
-discriminator = discriminator(img_shape)
-discriminator.compile(loss='binary_crossentropy', 
-                      optimizer=Adam(), metrics=['accuracy'])
-
-# Build the Generator
-generator = generator(img_shape, z_dim)
-
-# Generated image to be used as input
-z = Input(shape=(100,))
-img = generator(z)
-
-# Keep Discriminator’s parameters constant during Generator training
-discriminator.trainable = False
-
-# The Discriminator’s prediction
-prediction = discriminator(img)
-
-# Combined GAN model to train the Generator
-combined = Model(z, prediction)
-combined.compile(loss='binary_crossentropy', optimizer=Adam())
-
-
-
-losses = []
-accuracies = []
-
 def filter_by_category(xt, yt, i):
     result = []
     for x, y in zip(xt, yt):
         if y == i:
             result.append(x)
     return np.array(result) 
-
 
 def train(epochs, batch_size, sample_interval):
     (X_train, Y_train), (_, _) = cifar10.load_data()
@@ -167,10 +136,27 @@ def sample_images(epoch, image_grid_rows=4, image_grid_columns=4):
         
     plt.savefig(filename)
     plt.close("all")
+
+#=================================================================
     
 epochs = 20000
 batch_size = 32
 sample_interval = 1000
 
-# Train the GAN for the specified number of iterations
+discriminator = discriminator(img_shape)
+discriminator.compile(loss='binary_crossentropy', 
+                      optimizer=Adam(), metrics=['accuracy'])
+
+generator = generator(img_shape, z_dim)
+
+z = Input(shape=(100,))
+img = generator(z)
+
+discriminator.trainable = False
+
+prediction = discriminator(img)
+
+combined = Model(z, prediction)
+combined.compile(loss='binary_crossentropy', optimizer=Adam())
+
 train(epochs, batch_size, sample_interval)
