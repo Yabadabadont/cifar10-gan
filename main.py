@@ -60,14 +60,14 @@ def discriminator(img_shape):
 def filter_by_category(xt, yt, i):
     result = []
     for x, y in zip(xt, yt):
-        if y == i:
+        if y in i:
             result.append(x)
     return np.array(result) 
 
-def train(epochs, batch_size, sample_interval):
+def train(epochs, batch_size, sample_interval, categories):
     (X_train, Y_train), (_, _) = cifar10.load_data()
 
-    X_train = filter_by_category(X_train, Y_train, 0)
+    X_train = filter_by_category(X_train, Y_train, categories)
       
     # Scale -1 to 1
     X_train = X_train / 127.5 - 1.
@@ -139,7 +139,7 @@ def sample_images(epoch, image_grid_rows=4, image_grid_columns=4):
 
 #=================================================================
     
-epochs = 20000
+epochs = 1000000
 batch_size = 32
 sample_interval = 1000
 
@@ -159,4 +159,15 @@ prediction = discriminator(img)
 combined = Model(z, prediction)
 combined.compile(loss='binary_crossentropy', optimizer=Adam())
 
-train(epochs, batch_size, sample_interval)
+#0 airplane
+#1 automobile
+#2 bird
+#3 cat
+#4 deer
+#5 dog
+#6 frog
+#7 horse
+#8 ship
+#9 truck
+
+train(epochs, batch_size, sample_interval, categories=[3,4,5])
