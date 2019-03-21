@@ -1,1 +1,5 @@
-![test image](https://raw.githubusercontent.com/baileytom/cifar10-gan/master/images/sample_1000.png)
+![cars](https://raw.githubusercontent.com/baileytom/cifar10-gan/master/images/cars.png)
+
+![planes](https://raw.githubusercontent.com/baileytom/cifar10-gan/master/images/planes.png)
+
+![frogs](https://raw.githubusercontent.com/baileytom/cifar10-gan/master/images/frogs.png)
