@@ -170,4 +170,4 @@ combined.compile(loss='binary_crossentropy', optimizer=Adam())
 #8 ship
 #9 truck
 
-train(epochs, batch_size, sample_interval, categories=[3,4,5])
+train(epochs, batch_size, sample_interval, categories=[0])
