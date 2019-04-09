@@ -18,6 +18,19 @@ img_shape = (img_rows, img_cols, channels)
 z_dim = 100
 plt.switch_backend('agg')
 
+def noisy_labels(label, batch_size):
+    mislabeled = batch_size // 10
+    labels = []
+    if label:
+        labels = np.concatenate([
+            np.random.normal(0.7, 1, batch_size-mislabeled),
+            np.random.normal(0, 0.3, mislabeled)], axis=0)
+    else:
+        labels = np.concatenate([
+            np.random.normal(0, 0.3, batch_size-mislabeled),
+            np.random.normal(0.7, 1, mislabeled)], axis=0)
+    return np.array(labels)
+
 def generator(img_shape, z_dim):
     model = Sequential()
     model.add(Dense(256 * 8 * 8, input_dim=z_dim))
@@ -72,8 +85,8 @@ def train(epochs, batch_size, sample_interval, categories):
     # Scale -1 to 1
     X_train = X_train / 127.5 - 1.
 
-    ones = np.ones((batch_size, 1))
-    zeros = np.zeros((batch_size, 1))
+    ones = noisy_labels(1, batch_size)
+    zeros = noisy_labels(0, batch_size)
 
     for epoch in range(epochs):
         
@@ -170,4 +183,4 @@ combined.compile(loss='binary_crossentropy', optimizer=Adam())
 #8 ship
 #9 truck
 
-train(epochs, batch_size, sample_interval, categories=[0])
+train(epochs, batch_size, sample_interval, categories=[7])
